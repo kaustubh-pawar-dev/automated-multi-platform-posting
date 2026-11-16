@@ -49,4 +49,11 @@ def test_registry_available_through_dependency(app: FastAPI) -> None:
     with TestClient(app) as client:
         app.state.registry.register(FakeAdapter("Alpha"))
         response = client.get("/_test/platforms")
-    assert response.json() == ["Alpha"]
+    assert response.json() == ["Mastodon", "Bluesky", "Alpha"]
+
+
+def test_real_adapters_registered_but_unconfigured_without_credentials(app: FastAPI) -> None:
+    with TestClient(app):
+        registry = app.state.registry
+        assert registry.names() == ["Mastodon", "Bluesky"]
+        assert registry.configured() == []

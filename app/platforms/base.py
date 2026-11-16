@@ -33,6 +33,10 @@ class PublishedPost:
 class PlatformAdapter(ABC):
     """Abstract publishing interface for one platform."""
 
+    #: True when the platform deduplicates repeated requests that carry the same
+    #: idempotency key, which makes retrying an ambiguous failure safe.
+    idempotent_retries: bool = False
+
     @property
     @abstractmethod
     def name(self) -> str:
@@ -43,8 +47,12 @@ class PlatformAdapter(ABC):
         """Return True when all required credentials and settings are present."""
 
     @abstractmethod
-    async def publish(self, message: str) -> PublishedPost:
+    async def publish(self, message: str, *, idempotency_key: str) -> PublishedPost:
         """Publish ``message`` unchanged and return what the platform confirmed.
+
+        ``idempotency_key`` is generated once per publication and reused on every
+        retry of that publication. Adapters whose platform supports idempotency
+        must send it; the others ignore it.
 
         Raises:
             PlatformError: for any failure, with a client-safe message.

@@ -91,3 +91,9 @@ Five platforms are feasible with documented, self-serve access: Mastodon, Bluesk
 - WordPress.com: https://developer.wordpress.com/docs/api/
 - Discord: https://discord.com/developers/docs/resources/webhook
 - Reddit: https://support.reddithelp.com/ (Responsible Builder Policy)
+
+
+## 8. Step 5 implementation notes
+
+- **Mastodon:** a fresh `Idempotency-Key` is generated once per publication and re-sent on retries, so retrying even an ambiguous failure cannot duplicate the status. The request sets `visibility: public`, and `public_access` comes from the visibility the server returns.
+- **Bluesky:** `createRecord` has no idempotency mechanism, so ambiguous failures (read timeouts, 5xx) are never retried. The session is cached; an expired-token response (HTTP 400 or 401 with error `ExpiredToken` or `InvalidToken`, **verify against the live server in Step 13**) causes exactly one new login and one retry, which is safe because nothing was created. `posted_url` is derived from the handle and the record key of the returned `at://` URI. `public_access` is true because AT Protocol records are public; an account can still hide itself from logged-out viewers on bsky.app, which the API does not reveal.

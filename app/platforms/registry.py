@@ -10,6 +10,8 @@ import httpx
 
 from app.core.config import Settings
 from app.platforms.base import PlatformAdapter
+from app.platforms.bluesky import BlueskyAdapter
+from app.platforms.mastodon import MastodonAdapter
 
 
 class PlatformRegistry:
@@ -58,9 +60,23 @@ class PlatformRegistry:
 
 
 def build_registry(http_client: httpx.AsyncClient, settings: Settings) -> PlatformRegistry:
-    """Create the application's registry.
+    """Create the application's registry from settings.
 
-    Real adapters are registered here as they are implemented. No adapter
-    exists yet at this stage of the project, so the registry starts empty.
+    Every adapter is registered, configured or not. Callers use ``configured()``
+    to find the ones that can actually publish.
     """
-    return PlatformRegistry()
+    return PlatformRegistry(
+        [
+            MastodonAdapter(
+                http_client,
+                instance_url=settings.mastodon_instance_url,
+                access_token=settings.mastodon_access_token,
+            ),
+            BlueskyAdapter(
+                http_client,
+                service_url=settings.bluesky_service_url,
+                handle=settings.bluesky_handle,
+                app_password=settings.bluesky_app_password,
+            ),
+        ]
+    )

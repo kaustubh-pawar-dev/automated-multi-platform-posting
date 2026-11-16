@@ -33,21 +33,33 @@ class MessageValidationError(AppError):
 
 
 class PlatformError(AppError):
-    """A failure while publishing to a single platform."""
+    """A failure while publishing to a single platform.
+
+    Attributes:
+        retryable: a retry may succeed (transient failure).
+        ambiguous: the platform may have published the post despite the error
+            (for example a read timeout after the request was sent). Ambiguous
+            failures must only be retried for adapters that support idempotent
+            retries, otherwise a duplicate post could be published.
+    """
 
     default_message = "Platform error"
     retryable: bool = False
+    ambiguous: bool = False
 
     def __init__(
         self,
         safe_message: str | None = None,
         *,
         retryable: bool | None = None,
+        ambiguous: bool | None = None,
         detail: str | None = None,
     ) -> None:
         self.safe_message = safe_message or self.default_message
         if retryable is not None:
             self.retryable = retryable
+        if ambiguous is not None:
+            self.ambiguous = ambiguous
         self.detail = detail
         super().__init__(self.safe_message)
 

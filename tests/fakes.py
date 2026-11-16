@@ -22,6 +22,7 @@ class FakeAdapter(PlatformAdapter):
         self._error = error
         self._posted_url = posted_url
         self.published_messages: list[str] = []
+        self.idempotency_keys: list[str] = []
 
     @property
     def name(self) -> str:
@@ -30,8 +31,9 @@ class FakeAdapter(PlatformAdapter):
     def is_configured(self) -> bool:
         return self._configured
 
-    async def publish(self, message: str) -> PublishedPost:
+    async def publish(self, message: str, *, idempotency_key: str) -> PublishedPost:
         self.published_messages.append(message)
+        self.idempotency_keys.append(idempotency_key)
         if self._error is not None:
             raise self._error
         return PublishedPost(
