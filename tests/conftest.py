@@ -1,5 +1,6 @@
 """Shared pytest fixtures."""
 
+import ssl
 from collections.abc import AsyncIterator
 
 import httpx
@@ -22,8 +23,16 @@ def app(test_settings: Settings) -> FastAPI:
     return create_app(test_settings)
 
 
+@pytest.fixture(scope="session")
+def ssl_context() -> ssl.SSLContext:
+    """Build the (slow) SSL context once and share it, instead of once per test."""
+    return httpx.create_ssl_context()
+
+
 @pytest.fixture
-async def http_client() -> AsyncIterator[httpx.AsyncClient]:
+async def http_client(ssl_context: ssl.SSLContext) -> AsyncIterator[httpx.AsyncClient]:
     """An HTTP client configured like the production one (no redirects)."""
-    async with httpx.AsyncClient(follow_redirects=False, timeout=5.0) as client:
+    async with httpx.AsyncClient(
+        follow_redirects=False, timeout=5.0, verify=ssl_context
+    ) as client:
         yield client
