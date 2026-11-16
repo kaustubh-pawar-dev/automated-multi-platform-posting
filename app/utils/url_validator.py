@@ -50,18 +50,19 @@ class InvalidUrlError(ValueError):
         self.message = message
 
 
+def _ends_with_prose_character(candidate: str) -> bool:
+    """True when the last character is sentence punctuation or an unbalanced closing bracket."""
+    last = candidate[-1]
+    if last in _TRAILING_PUNCTUATION:
+        return True
+    opening = _CLOSING_TO_OPENING.get(last)
+    return opening is not None and candidate.count(last) > candidate.count(opening)
+
+
 def _trim_trailing(candidate: str) -> str:
     """Remove trailing punctuation and unbalanced closing brackets from a match."""
-    while candidate:
-        last = candidate[-1]
-        if last in _TRAILING_PUNCTUATION:
-            candidate = candidate[:-1]
-        elif last in _CLOSING_TO_OPENING and candidate.count(last) > candidate.count(
-            _CLOSING_TO_OPENING[last]
-        ):
-            candidate = candidate[:-1]
-        else:
-            break
+    while candidate and _ends_with_prose_character(candidate):
+        candidate = candidate[:-1]
     return candidate
 
 

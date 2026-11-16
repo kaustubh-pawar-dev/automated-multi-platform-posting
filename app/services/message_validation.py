@@ -65,7 +65,9 @@ def validate_message(raw: str) -> ValidatedMessage:
     """
     text = raw.strip()
     if not text:
-        raise MessageValidationError([ValidationIssue("EMPTY_MESSAGE", "Message must not be empty.")])
+        raise MessageValidationError(
+            [ValidationIssue("EMPTY_MESSAGE", "Message must not be empty.")]
+        )
 
     issues: list[ValidationIssue] = []
     if len(text) > MAX_MESSAGE_LENGTH:
@@ -77,7 +79,9 @@ def validate_message(raw: str) -> ValidatedMessage:
         )
     if _has_control_characters(text):
         issues.append(
-            ValidationIssue("INVALID_CHARACTERS", "Message contains unsupported control characters.")
+            ValidationIssue(
+                "INVALID_CHARACTERS", "Message contains unsupported control characters."
+            )
         )
 
     cta = _check_cta(text)

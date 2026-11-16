@@ -6,7 +6,11 @@ from app.schemas.errors import ErrorResponse
 
 def test_from_validation_error_builds_structured_body() -> None:
     exc = MessageValidationError(
-        [ValidationIssue("MULTIPLE_CTA_URLS", "Message must contain exactly one link; 2 were found.")]
+        [
+            ValidationIssue(
+                "MULTIPLE_CTA_URLS", "Message must contain exactly one link; 2 were found."
+            )
+        ]
     )
     assert ErrorResponse.from_validation_error(exc).model_dump(mode="json") == {
         "error": "validation_error",

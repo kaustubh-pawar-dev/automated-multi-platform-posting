@@ -10,7 +10,9 @@ from app.core.exceptions import MessageValidationError
 class ErrorDetail(BaseModel):
     """One specific problem."""
 
-    code: str = Field(..., description="Stable machine-readable code.", examples=["MESSAGE_TOO_LONG"])
+    code: str = Field(
+        ..., description="Stable machine-readable code.", examples=["MESSAGE_TOO_LONG"]
+    )
     message: str = Field(..., description="Human-readable explanation.")
 
 
