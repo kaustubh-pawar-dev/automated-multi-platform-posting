@@ -3,9 +3,13 @@
 Settings are validated at startup by Pydantic, so a misconfigured environment
 fails fast with a clear message instead of failing later during a request.
 Platform credentials are ``SecretStr`` so they never appear in logs, reprs, or
-API responses. Blank values (``MASTODON_ACCESS_TOKEN=``) mean "not configured".
+API responses, and validation errors never echo the offending input
+(``hide_input_in_errors``). Blank values (``MASTODON_ACCESS_TOKEN=``) mean
+"not configured".
 """
 
+import re
+from datetime import date
 from functools import lru_cache
 from typing import Literal
 from urllib.parse import urlsplit
@@ -14,6 +18,10 @@ from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _ORIGIN_HELP = "must be an https URL with a host and no path, e.g. https://mastodon.social"
+_TELEGRAM_TOKEN_RE = re.compile(r"\d{3,}:[A-Za-z0-9_-]{10,}")
+_TELEGRAM_CHAT_RE = re.compile(r"@[A-Za-z][A-Za-z0-9_]{4,31}|-?\d{5,20}")
+_LINKEDIN_URN_RE = re.compile(r"urn:li:person:[A-Za-z0-9_-]{1,64}")
+_LINKEDIN_VERSION_RE = re.compile(r"20\d{2}(?:0[1-9]|1[0-2])")
 
 
 def _normalize_https_origin(value: str) -> str:
@@ -46,6 +54,7 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=False,
+        hide_input_in_errors=True,
     )
 
     # --- Application ---
@@ -72,11 +81,26 @@ class Settings(BaseSettings):
     bluesky_handle: str | None = None
     bluesky_app_password: SecretStr | None = None
 
+    # --- Telegram ---
+    telegram_bot_token: SecretStr | None = None
+    telegram_chat_id: str | None = None
+
+    # --- LinkedIn ---
+    linkedin_access_token: SecretStr | None = None
+    linkedin_person_urn: str | None = None
+    linkedin_api_version: str = "202608"
+    linkedin_token_expires_at: date | None = None
+
     @field_validator(
         "mastodon_instance_url",
         "mastodon_access_token",
         "bluesky_handle",
         "bluesky_app_password",
+        "telegram_bot_token",
+        "telegram_chat_id",
+        "linkedin_access_token",
+        "linkedin_person_urn",
+        "linkedin_token_expires_at",
         mode="before",
     )
     @classmethod
@@ -96,6 +120,34 @@ class Settings(BaseSettings):
     @classmethod
     def _normalize_bluesky_url(cls, value: str) -> str:
         return _normalize_https_origin(value)
+
+    @field_validator("telegram_bot_token", mode="after")
+    @classmethod
+    def _check_telegram_token(cls, value: SecretStr | None) -> SecretStr | None:
+        if value is not None and not _TELEGRAM_TOKEN_RE.fullmatch(value.get_secret_value()):
+            raise ValueError("TELEGRAM_BOT_TOKEN has an invalid format (expected 123456:ABC...)")
+        return value
+
+    @field_validator("telegram_chat_id", mode="after")
+    @classmethod
+    def _check_telegram_chat(cls, value: str | None) -> str | None:
+        if value is not None and not _TELEGRAM_CHAT_RE.fullmatch(value):
+            raise ValueError("TELEGRAM_CHAT_ID must be @channelusername or a numeric chat id")
+        return value
+
+    @field_validator("linkedin_person_urn", mode="after")
+    @classmethod
+    def _check_linkedin_urn(cls, value: str | None) -> str | None:
+        if value is not None and not _LINKEDIN_URN_RE.fullmatch(value):
+            raise ValueError("LINKEDIN_PERSON_URN must look like urn:li:person:<id>")
+        return value
+
+    @field_validator("linkedin_api_version", mode="after")
+    @classmethod
+    def _check_linkedin_version(cls, value: str) -> str:
+        if not _LINKEDIN_VERSION_RE.fullmatch(value):
+            raise ValueError("LINKEDIN_API_VERSION must be YYYYMM, e.g. 202608")
+        return value
 
 
 @lru_cache

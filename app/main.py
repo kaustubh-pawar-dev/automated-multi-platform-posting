@@ -19,6 +19,16 @@ API_DESCRIPTION = (
 )
 
 
+def _silence_http_client_logging() -> None:
+    """Stop httpx/httpcore from logging request URLs.
+
+    httpx logs every request URL at INFO level. Telegram carries the bot token in
+    the URL path, so INFO-level HTTP logging would leak a credential into logs.
+    """
+    for name in ("httpx", "httpcore"):
+        logging.getLogger(name).setLevel(logging.WARNING)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Create shared resources at startup and release them at shutdown."""
@@ -43,6 +53,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     """Build the FastAPI application. Tests pass their own settings."""
+    _silence_http_client_logging()
     resolved = settings or get_settings()
     app = FastAPI(
         title=resolved.app_name,

@@ -1,5 +1,6 @@
 """Tests for application creation, lifecycle and dependency wiring."""
 
+import logging
 from typing import Annotated
 
 import pytest
@@ -10,6 +11,8 @@ from app.api.dependencies import get_registry
 from app.core.config import Settings
 from app.platforms.registry import PlatformRegistry
 from tests.fakes import FakeAdapter
+
+REAL_PLATFORMS = ["Mastodon", "Bluesky", "Telegram", "LinkedIn"]
 
 
 @pytest.mark.parametrize("path", ["/docs", "/redoc"])
@@ -49,11 +52,17 @@ def test_registry_available_through_dependency(app: FastAPI) -> None:
     with TestClient(app) as client:
         app.state.registry.register(FakeAdapter("Alpha"))
         response = client.get("/_test/platforms")
-    assert response.json() == ["Mastodon", "Bluesky", "Alpha"]
+    assert response.json() == [*REAL_PLATFORMS, "Alpha"]
 
 
 def test_real_adapters_registered_but_unconfigured_without_credentials(app: FastAPI) -> None:
     with TestClient(app):
         registry = app.state.registry
-        assert registry.names() == ["Mastodon", "Bluesky"]
+        assert registry.names() == REAL_PLATFORMS
         assert registry.configured() == []
+
+
+def test_http_request_logging_is_silenced_to_protect_url_secrets(app: FastAPI) -> None:
+    """Telegram's bot token is in the URL, and httpx logs URLs at INFO."""
+    assert logging.getLogger("httpx").getEffectiveLevel() >= logging.WARNING
+    assert logging.getLogger("httpcore").getEffectiveLevel() >= logging.WARNING

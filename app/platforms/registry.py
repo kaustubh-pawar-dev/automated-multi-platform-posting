@@ -11,7 +11,9 @@ import httpx
 from app.core.config import Settings
 from app.platforms.base import PlatformAdapter
 from app.platforms.bluesky import BlueskyAdapter
+from app.platforms.linkedin import LinkedInAdapter
 from app.platforms.mastodon import MastodonAdapter
+from app.platforms.telegram import TelegramAdapter
 
 
 class PlatformRegistry:
@@ -77,6 +79,18 @@ def build_registry(http_client: httpx.AsyncClient, settings: Settings) -> Platfo
                 service_url=settings.bluesky_service_url,
                 handle=settings.bluesky_handle,
                 app_password=settings.bluesky_app_password,
+            ),
+            TelegramAdapter(
+                http_client,
+                bot_token=settings.telegram_bot_token,
+                chat_id=settings.telegram_chat_id,
+            ),
+            LinkedInAdapter(
+                http_client,
+                access_token=settings.linkedin_access_token,
+                person_urn=settings.linkedin_person_urn,
+                api_version=settings.linkedin_api_version,
+                token_expires_at=settings.linkedin_token_expires_at,
             ),
         ]
     )
