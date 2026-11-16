@@ -1,14 +1,35 @@
 """Application exception hierarchy.
 
-Platform adapters raise these instead of returning ad-hoc error strings. The
-posting service turns each one into a normalised failed result. Only
-``safe_message`` is ever shown to API clients; ``detail`` is for logs and must
-never contain credentials.
+Platform adapters raise ``PlatformError`` subclasses instead of returning ad-hoc
+error strings. The posting service turns each one into a normalised failed
+result. Only ``safe_message`` is ever shown to API clients; ``detail`` is for
+logs and must never contain credentials.
+
+``MessageValidationError`` reports every reason a submitted message was rejected.
 """
+
+from collections.abc import Sequence
+from dataclasses import dataclass
 
 
 class AppError(Exception):
     """Base class for all application-defined errors."""
+
+
+@dataclass(frozen=True, slots=True)
+class ValidationIssue:
+    """One reason a message was rejected. ``code`` is stable and machine-readable."""
+
+    code: str
+    message: str
+
+
+class MessageValidationError(AppError):
+    """The submitted message violates one or more business rules."""
+
+    def __init__(self, issues: Sequence[ValidationIssue]) -> None:
+        self.issues: tuple[ValidationIssue, ...] = tuple(issues)
+        super().__init__("; ".join(issue.message for issue in self.issues))
 
 
 class PlatformError(AppError):
