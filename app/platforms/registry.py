@@ -11,6 +11,7 @@ import httpx
 from app.core.config import Settings
 from app.platforms.base import PlatformAdapter
 from app.platforms.bluesky import BlueskyAdapter
+from app.platforms.discord import DiscordAdapter
 from app.platforms.linkedin import LinkedInAdapter
 from app.platforms.mastodon import MastodonAdapter
 from app.platforms.telegram import TelegramAdapter
@@ -91,6 +92,11 @@ def build_registry(http_client: httpx.AsyncClient, settings: Settings) -> Platfo
                 person_urn=settings.linkedin_person_urn,
                 api_version=settings.linkedin_api_version,
                 token_expires_at=settings.linkedin_token_expires_at,
+            ),
+            DiscordAdapter(
+                http_client,
+                webhook_url=settings.discord_webhook_url,
+                guild_id=settings.discord_guild_id,
             ),
         ]
     )

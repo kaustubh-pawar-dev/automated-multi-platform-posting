@@ -12,7 +12,7 @@ from app.core.config import Settings
 from app.platforms.registry import PlatformRegistry
 from tests.fakes import FakeAdapter
 
-REAL_PLATFORMS = ["Mastodon", "Bluesky", "Telegram", "LinkedIn"]
+REAL_PLATFORMS = ["Mastodon", "Bluesky", "Telegram", "LinkedIn", "Discord"]
 
 
 @pytest.mark.parametrize("path", ["/docs", "/redoc"])
@@ -62,7 +62,12 @@ def test_real_adapters_registered_but_unconfigured_without_credentials(app: Fast
         assert registry.configured() == []
 
 
+def test_at_least_five_platforms_are_integrated(app: FastAPI) -> None:
+    with TestClient(app):
+        assert len(app.state.registry) >= 5
+
+
 def test_http_request_logging_is_silenced_to_protect_url_secrets(app: FastAPI) -> None:
-    """Telegram's bot token is in the URL, and httpx logs URLs at INFO."""
+    """Telegram's bot token and Discord's webhook token are in URLs; httpx logs URLs at INFO."""
     assert logging.getLogger("httpx").getEffectiveLevel() >= logging.WARNING
     assert logging.getLogger("httpcore").getEffectiveLevel() >= logging.WARNING

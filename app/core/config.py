@@ -22,6 +22,11 @@ _TELEGRAM_TOKEN_RE = re.compile(r"\d{3,}:[A-Za-z0-9_-]{10,}")
 _TELEGRAM_CHAT_RE = re.compile(r"@[A-Za-z][A-Za-z0-9_]{4,31}|-?\d{5,20}")
 _LINKEDIN_URN_RE = re.compile(r"urn:li:person:[A-Za-z0-9_-]{1,64}")
 _LINKEDIN_VERSION_RE = re.compile(r"20\d{2}(?:0[1-9]|1[0-2])")
+_DISCORD_WEBHOOK_RE = re.compile(
+    r"https://(?:discord|discordapp)\.com/api/(?:v\d{1,2}/)?webhooks/"
+    r"\d{17,20}/[A-Za-z0-9_-]{20,120}/?"
+)
+_DISCORD_GUILD_RE = re.compile(r"\d{17,20}")
 
 
 def _normalize_https_origin(value: str) -> str:
@@ -91,6 +96,10 @@ class Settings(BaseSettings):
     linkedin_api_version: str = "202608"
     linkedin_token_expires_at: date | None = None
 
+    # --- Discord ---
+    discord_webhook_url: SecretStr | None = None
+    discord_guild_id: str | None = None
+
     @field_validator(
         "mastodon_instance_url",
         "mastodon_access_token",
@@ -101,6 +110,8 @@ class Settings(BaseSettings):
         "linkedin_access_token",
         "linkedin_person_urn",
         "linkedin_token_expires_at",
+        "discord_webhook_url",
+        "discord_guild_id",
         mode="before",
     )
     @classmethod
@@ -147,6 +158,22 @@ class Settings(BaseSettings):
     def _check_linkedin_version(cls, value: str) -> str:
         if not _LINKEDIN_VERSION_RE.fullmatch(value):
             raise ValueError("LINKEDIN_API_VERSION must be YYYYMM, e.g. 202608")
+        return value
+
+    @field_validator("discord_webhook_url", mode="after")
+    @classmethod
+    def _check_discord_webhook(cls, value: SecretStr | None) -> SecretStr | None:
+        if value is not None and not _DISCORD_WEBHOOK_RE.fullmatch(value.get_secret_value()):
+            raise ValueError(
+                "DISCORD_WEBHOOK_URL must look like https://discord.com/api/webhooks/<id>/<token>"
+            )
+        return value
+
+    @field_validator("discord_guild_id", mode="after")
+    @classmethod
+    def _check_discord_guild(cls, value: str | None) -> str | None:
+        if value is not None and not _DISCORD_GUILD_RE.fullmatch(value):
+            raise ValueError("DISCORD_GUILD_ID must be the numeric server id")
         return value
 
 
