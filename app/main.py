@@ -7,6 +7,8 @@ from contextlib import asynccontextmanager
 import httpx
 from fastapi import FastAPI
 
+from app.api.errors import register_exception_handlers
+from app.api.routes.posting import router as posting_router
 from app.core.config import Settings, get_settings
 from app.platforms.registry import build_registry
 from app.services.posting_service import PostingService
@@ -66,6 +68,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         lifespan=lifespan,
     )
     app.state.settings = resolved
+    register_exception_handlers(app)
+    app.include_router(posting_router)
     return app
 
 
