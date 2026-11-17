@@ -4,6 +4,7 @@ from fastapi import Request
 
 from app.core.config import Settings
 from app.platforms.registry import PlatformRegistry
+from app.services.posting_service import PostingService
 
 
 def get_app_settings(request: Request) -> Settings:
@@ -16,3 +17,9 @@ def get_registry(request: Request) -> PlatformRegistry:
     """Return the platform registry built at startup."""
     registry: PlatformRegistry = request.app.state.registry
     return registry
+
+
+def get_posting_service(request: Request) -> PostingService:
+    """Return the posting service built at startup."""
+    service: PostingService = request.app.state.posting_service
+    return service

@@ -97,10 +97,16 @@ class PostingResponse(BaseModel):
     total_platforms: int = Field(..., ge=0, description="Platforms attempted.")
     successful_count: int = Field(..., ge=0, description="Platforms that published.")
     failed_count: int = Field(..., ge=0, description="Platforms that failed.")
-    results: list[PlatformResult] = Field(..., description="One entry per platform.")
+    results: list[PlatformResult] = Field(..., description="One entry per platform attempted.")
+    skipped_platforms: list[str] = Field(
+        default_factory=list,
+        description="Platforms that are not configured and were therefore not attempted.",
+    )
 
     @classmethod
-    def from_results(cls, results: Sequence[PlatformResult]) -> Self:
+    def from_results(
+        cls, results: Sequence[PlatformResult], skipped: Sequence[str] = ()
+    ) -> Self:
         """Aggregate individual results into the overall response."""
         successful = sum(1 for result in results if result.status == "success")
         failed = len(results) - successful
@@ -110,4 +116,5 @@ class PostingResponse(BaseModel):
             successful_count=successful,
             failed_count=failed,
             results=list(results),
+            skipped_platforms=list(skipped),
         )

@@ -9,6 +9,7 @@ from fastapi import FastAPI
 
 from app.core.config import Settings, get_settings
 from app.platforms.registry import build_registry
+from app.services.posting_service import PostingService
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     ) as http_client:
         app.state.http_client = http_client
         app.state.registry = build_registry(http_client, settings)
+        app.state.posting_service = PostingService.from_settings(app.state.registry, settings)
         logger.info("Application started with %d platform(s)", len(app.state.registry))
         yield
     logger.info("Application stopped; HTTP client closed")
