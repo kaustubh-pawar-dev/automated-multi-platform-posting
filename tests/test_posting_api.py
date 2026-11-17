@@ -277,12 +277,11 @@ async def test_unexpected_internal_error_returns_generic_500(
     response = await client.post("/posting", json={"message": VALID})
 
     assert response.status_code == 500
-    assert response.json() == {
-        "error": "internal_error",
-        "message": "An unexpected error occurred.",
-        "details": [],
-        "request_id": None,
-    }
+    body = response.json()
+    assert body["error"] == "internal_error"
+    assert body["message"] == "An unexpected error occurred."
+    assert body["details"] == []
+    assert body["request_id"] == response.headers["x-request-id"]
     assert "SECRET-INTERNAL-DETAIL" not in response.text
     assert "Traceback" not in response.text
 

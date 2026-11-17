@@ -1,13 +1,16 @@
 """Shared pytest fixtures."""
 
+import io
+import logging
 import ssl
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 
 import httpx
 import pytest
 from fastapi import FastAPI
 
 from app.core.config import Settings
+from app.core.logging import remove_app_handlers
 from app.main import create_app
 
 
@@ -36,3 +39,12 @@ async def http_client(ssl_context: ssl.SSLContext) -> AsyncIterator[httpx.AsyncC
         follow_redirects=False, timeout=5.0, verify=ssl_context
     ) as client:
         yield client
+
+
+@pytest.fixture
+def log_stream() -> Iterator[io.StringIO]:
+    """A buffer for capturing application log output; logging is restored afterwards."""
+    stream = io.StringIO()
+    yield stream
+    remove_app_handlers()
+    logging.getLogger().setLevel(logging.WARNING)

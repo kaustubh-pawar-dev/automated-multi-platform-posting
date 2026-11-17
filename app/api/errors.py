@@ -1,8 +1,8 @@
 """Exception handlers that turn every failure into the structured ``ErrorResponse``.
 
 Clients always receive the same JSON envelope (``error``, ``message``, ``details``,
-``request_id``) and never see stack traces, exception texts, submitted input or
-internal details:
+``request_id``) plus an ``X-Request-ID`` header, and never see stack traces,
+exception texts, submitted input or internal details:
 
 * ``MessageValidationError``  -> 400 (business rules: length, links)
 * ``RequestValidationError``  -> 422 (malformed request: missing/extra/invalid fields)
@@ -21,6 +21,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.exceptions import MessageValidationError
+from app.core.logging import REQUEST_ID_HEADER, current_request_id
 from app.schemas.errors import ErrorDetail, ErrorResponse
 
 logger = logging.getLogger(__name__)
@@ -41,13 +42,20 @@ def error_response(
     message: str,
     details: Iterable[ErrorDetail] = (),
     headers: Mapping[str, str] | None = None,
+    request_id: str | None = None,
 ) -> JSONResponse:
-    """Build a JSON response carrying the standard error envelope."""
-    body = ErrorResponse(error=error, message=message, details=list(details))
+    """Build a JSON response carrying the standard error envelope and request id."""
+    resolved_id = request_id or current_request_id()
+    body = ErrorResponse(
+        error=error, message=message, details=list(details), request_id=resolved_id
+    )
+    merged: dict[str, str] = dict(headers) if headers else {}
+    if resolved_id:
+        merged[REQUEST_ID_HEADER] = resolved_id
     return JSONResponse(
         status_code=status_code,
         content=body.model_dump(mode="json"),
-        headers=dict(headers) if headers else None,
+        headers=merged or None,
     )
 
 
@@ -64,9 +72,9 @@ async def handle_message_validation_error(
     request: Request, exc: MessageValidationError
 ) -> JSONResponse:
     """The message broke a business rule."""
-    body = ErrorResponse.from_validation_error(exc)
     logger.info("request_rejected status=400 codes=%s", [issue.code for issue in exc.issues])
-    return JSONResponse(status_code=400, content=body.model_dump(mode="json"))
+    details = [ErrorDetail(code=issue.code, message=issue.message) for issue in exc.issues]
+    return error_response(400, "validation_error", "The message failed validation.", details)
 
 
 async def handle_request_validation_error(
@@ -92,15 +100,22 @@ async def handle_http_exception(request: Request, exc: StarletteHTTPException) -
 
 
 async def handle_unexpected_error(request: Request, exc: Exception) -> JSONResponse:
-    """Last line of defence: log the type only and return a generic message."""
+    """Last line of defence: log the type only and return a generic message.
+
+    This handler runs outside the request middleware, so the request id is read
+    from the request state instead of the context variable.
+    """
+    request_id = getattr(request.state, "request_id", None)
     logger.error(
-        "unhandled_error method=%s path=%s error_type=%s",
+        "unhandled_error method=%s path=%a error_type=%s",
         request.method,
-        request.url.path,
+        request.url.path[:200],
         type(exc).__name__,
     )
     logger.debug("unhandled error traceback", exc_info=True)
-    return error_response(500, "internal_error", "An unexpected error occurred.")
+    return error_response(
+        500, "internal_error", "An unexpected error occurred.", request_id=request_id
+    )
 
 
 def register_exception_handlers(app: FastAPI) -> None:

@@ -8,8 +8,10 @@ import httpx
 from fastapi import FastAPI
 
 from app.api.errors import register_exception_handlers
+from app.api.middleware import RequestContextMiddleware
 from app.api.routes.posting import router as posting_router
 from app.core.config import Settings, get_settings
+from app.core.logging import collect_secrets, configure_logging
 from app.platforms.registry import build_registry
 from app.services.posting_service import PostingService
 
@@ -20,16 +22,6 @@ API_DESCRIPTION = (
     "third-party platforms. Platform selection is internal, each platform runs "
     "independently, and one platform failing never stops the others."
 )
-
-
-def _silence_http_client_logging() -> None:
-    """Stop httpx/httpcore from logging request URLs.
-
-    httpx logs every request URL at INFO level. Telegram carries the bot token in
-    the URL path, so INFO-level HTTP logging would leak a credential into logs.
-    """
-    for name in ("httpx", "httpcore"):
-        logging.getLogger(name).setLevel(logging.WARNING)
 
 
 @asynccontextmanager
@@ -50,15 +42,26 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.http_client = http_client
         app.state.registry = build_registry(http_client, settings)
         app.state.posting_service = PostingService.from_settings(app.state.registry, settings)
-        logger.info("Application started with %d platform(s)", len(app.state.registry))
+        configured = [adapter.name for adapter in app.state.registry.configured()]
+        not_configured = [n for n in app.state.registry.names() if n not in configured]
+        logger.info(
+            "application_started environment=%s configured=%s not_configured=%s",
+            settings.environment,
+            configured,
+            not_configured,
+        )
         yield
-    logger.info("Application stopped; HTTP client closed")
+    logger.info("application_stopped http_client_closed=True")
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     """Build the FastAPI application. Tests pass their own settings."""
-    _silence_http_client_logging()
     resolved = settings or get_settings()
+    configure_logging(
+        resolved.log_level,
+        "json" if resolved.environment == "production" else "text",
+        secrets=collect_secrets(resolved),
+    )
     app = FastAPI(
         title=resolved.app_name,
         version=resolved.app_version,
@@ -69,6 +72,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = resolved
     register_exception_handlers(app)
+    app.add_middleware(RequestContextMiddleware)
     app.include_router(posting_router)
     return app
 

@@ -23,14 +23,18 @@ class ErrorResponse(BaseModel):
     message: str = Field(..., description="Summary of what went wrong.")
     details: list[ErrorDetail] = Field(default_factory=list, description="Individual problems.")
     request_id: str | None = Field(
-        default=None, description="Correlation id for this request (populated in a later step)."
+        default=None,
+        description="Correlation id of this request; also sent in the X-Request-ID header.",
     )
 
     @classmethod
-    def from_validation_error(cls, exc: MessageValidationError) -> Self:
+    def from_validation_error(
+        cls, exc: MessageValidationError, request_id: str | None = None
+    ) -> Self:
         """Build the error body for a rejected message."""
         return cls(
             error="validation_error",
             message="The message failed validation.",
             details=[ErrorDetail(code=issue.code, message=issue.message) for issue in exc.issues],
+            request_id=request_id,
         )
