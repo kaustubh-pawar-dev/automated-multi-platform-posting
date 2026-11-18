@@ -4,7 +4,6 @@ import datetime as dt
 from typing import Any
 
 import pytest
-from fastapi.testclient import TestClient
 
 from app.core.config import Settings
 from app.core.exceptions import (
@@ -314,7 +313,7 @@ def test_response_lists_skipped_platforms_and_defaults_to_none() -> None:
     assert PostingResponse.from_results([], skipped=["X"]).skipped_platforms == ["X"]
 
 
-def test_service_is_created_at_application_startup(test_settings: Settings) -> None:
+async def test_service_is_created_at_application_startup(test_settings: Settings) -> None:
     app = create_app(test_settings)
-    with TestClient(app):
+    async with app.router.lifespan_context(app):
         assert isinstance(app.state.posting_service, PostingService)
