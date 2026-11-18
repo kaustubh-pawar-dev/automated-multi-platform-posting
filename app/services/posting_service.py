@@ -135,8 +135,12 @@ class PostingService:
         )
         started = time.monotonic()
         semaphore = asyncio.Semaphore(self.max_concurrent)
+        durations: dict[str, int] = {}
         outcomes = await asyncio.gather(
-            *(self._run_platform(adapter, message.text, semaphore) for adapter in attempted),
+            *(
+                self._run_platform(adapter, message.text, semaphore, durations)
+                for adapter in attempted
+            ),
             return_exceptions=True,
         )
 
@@ -152,19 +156,28 @@ class PostingService:
             )
             results.append(PlatformResult.failure(adapter.name, UNEXPECTED_ERROR))
 
-        response = PostingResponse.from_results(results, skipped=skipped)
+        response = PostingResponse.from_results(
+            results,
+            skipped=skipped,
+            durations_ms=durations,
+            total_duration_ms=int((time.monotonic() - started) * 1000),
+        )
         logger.info(
             "posting_finished success=%s attempted=%d succeeded=%d failed=%d duration_ms=%d",
             response.success,
             response.total_platforms,
             response.successful_count,
             response.failed_count,
-            int((time.monotonic() - started) * 1000),
+            response.total_duration_ms,
         )
         return response
 
     async def _run_platform(
-        self, adapter: PlatformAdapter, text: str, semaphore: asyncio.Semaphore
+        self,
+        adapter: PlatformAdapter,
+        text: str,
+        semaphore: asyncio.Semaphore,
+        durations: dict[str, int],
     ) -> PlatformResult:
         """Publish to one platform. Always returns a result; never raises for platform errors."""
         async with semaphore:
@@ -211,12 +224,14 @@ class PostingService:
             else:
                 result = self._success_result(adapter, post)
 
+            duration_ms = int((time.monotonic() - started) * 1000)
+            durations[adapter.name] = duration_ms
             logger.info(
                 "platform_finished platform=%s status=%s attempts=%d duration_ms=%d",
                 adapter.name,
                 result.status,
                 progress.attempts,
-                int((time.monotonic() - started) * 1000),
+                duration_ms,
             )
             return result
 

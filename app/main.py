@@ -1,6 +1,7 @@
 """FastAPI application factory and lifecycle management."""
 
 import logging
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -9,6 +10,7 @@ from fastapi import FastAPI
 
 from app.api.errors import register_exception_handlers
 from app.api.middleware import RequestContextMiddleware
+from app.api.routes.health import router as health_router
 from app.api.routes.posting import router as posting_router
 from app.core.config import Settings, get_settings
 from app.core.logging import collect_secrets, configure_logging
@@ -71,9 +73,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         lifespan=lifespan,
     )
     app.state.settings = resolved
+    app.state.started_monotonic = time.monotonic()
     register_exception_handlers(app)
     app.add_middleware(RequestContextMiddleware)
     app.include_router(posting_router)
+    app.include_router(health_router)
     return app
 
 

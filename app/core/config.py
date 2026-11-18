@@ -11,11 +11,11 @@ API responses, and validation errors never echo the offending input
 import re
 from datetime import date
 from functools import lru_cache
-from typing import Literal
+from typing import Annotated, Literal
 from urllib.parse import urlsplit
 
 from pydantic import Field, SecretStr, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 _ORIGIN_HELP = "must be an https URL with a host and no path, e.g. https://mastodon.social"
 _TELEGRAM_TOKEN_RE = re.compile(r"\d{3,}:[A-Za-z0-9_-]{10,}")
@@ -100,6 +100,10 @@ class Settings(BaseSettings):
     discord_webhook_url: SecretStr | None = None
     discord_guild_id: str | None = None
 
+    # --- Platform switches ---
+    # Comma-separated names of platforms to switch off without deleting credentials.
+    disabled_platforms: Annotated[list[str], NoDecode] = Field(default_factory=list)
+
     @field_validator(
         "mastodon_instance_url",
         "mastodon_access_token",
@@ -174,6 +178,14 @@ class Settings(BaseSettings):
     def _check_discord_guild(cls, value: str | None) -> str | None:
         if value is not None and not _DISCORD_GUILD_RE.fullmatch(value):
             raise ValueError("DISCORD_GUILD_ID must be the numeric server id")
+        return value
+
+    @field_validator("disabled_platforms", mode="before")
+    @classmethod
+    def _split_disabled_platforms(cls, value: object) -> object:
+        """Accept 'LinkedIn, Telegram' from the environment as well as a list."""
+        if isinstance(value, str):
+            return [part.strip() for part in value.split(",") if part.strip()]
         return value
 
 

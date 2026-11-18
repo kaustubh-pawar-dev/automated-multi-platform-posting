@@ -1,7 +1,7 @@
 """Response schemas for the posting API."""
 
 import datetime as dt
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Literal, Self
 
 from pydantic import BaseModel, Field, model_validator
@@ -102,10 +102,25 @@ class PostingResponse(BaseModel):
         default_factory=list,
         description="Platforms that are not configured and were therefore not attempted.",
     )
+    total_duration_ms: int = Field(
+        default=0, ge=0, description="Wall-clock time of the whole publication, in milliseconds."
+    )
+    platform_durations_ms: dict[str, int] = Field(
+        default_factory=dict,
+        description=(
+            "Milliseconds each attempted platform took, including retries and waits, by "
+            "platform name. A platform whose task failed unexpectedly has no entry."
+        ),
+    )
 
     @classmethod
     def from_results(
-        cls, results: Sequence[PlatformResult], skipped: Sequence[str] = ()
+        cls,
+        results: Sequence[PlatformResult],
+        skipped: Sequence[str] = (),
+        *,
+        durations_ms: Mapping[str, int] | None = None,
+        total_duration_ms: int = 0,
     ) -> Self:
         """Aggregate individual results into the overall response."""
         successful = sum(1 for result in results if result.status == "success")
@@ -117,4 +132,6 @@ class PostingResponse(BaseModel):
             failed_count=failed,
             results=list(results),
             skipped_platforms=list(skipped),
+            total_duration_ms=total_duration_ms,
+            platform_durations_ms=dict(durations_ms or {}),
         )

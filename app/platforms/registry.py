@@ -65,38 +65,46 @@ class PlatformRegistry:
 def build_registry(http_client: httpx.AsyncClient, settings: Settings) -> PlatformRegistry:
     """Create the application's registry from settings.
 
-    Every adapter is registered, configured or not. Callers use ``configured()``
-    to find the ones that can actually publish.
+    Every enabled adapter is registered, configured or not; callers use
+    ``configured()`` to find the ones that can actually publish. Platforms named in
+    ``DISABLED_PLATFORMS`` are left out entirely, and an unknown name fails startup.
     """
-    return PlatformRegistry(
-        [
-            MastodonAdapter(
-                http_client,
-                instance_url=settings.mastodon_instance_url,
-                access_token=settings.mastodon_access_token,
-            ),
-            BlueskyAdapter(
-                http_client,
-                service_url=settings.bluesky_service_url,
-                handle=settings.bluesky_handle,
-                app_password=settings.bluesky_app_password,
-            ),
-            TelegramAdapter(
-                http_client,
-                bot_token=settings.telegram_bot_token,
-                chat_id=settings.telegram_chat_id,
-            ),
-            LinkedInAdapter(
-                http_client,
-                access_token=settings.linkedin_access_token,
-                person_urn=settings.linkedin_person_urn,
-                api_version=settings.linkedin_api_version,
-                token_expires_at=settings.linkedin_token_expires_at,
-            ),
-            DiscordAdapter(
-                http_client,
-                webhook_url=settings.discord_webhook_url,
-                guild_id=settings.discord_guild_id,
-            ),
-        ]
-    )
+    adapters: list[PlatformAdapter] = [
+        MastodonAdapter(
+            http_client,
+            instance_url=settings.mastodon_instance_url,
+            access_token=settings.mastodon_access_token,
+        ),
+        BlueskyAdapter(
+            http_client,
+            service_url=settings.bluesky_service_url,
+            handle=settings.bluesky_handle,
+            app_password=settings.bluesky_app_password,
+        ),
+        TelegramAdapter(
+            http_client,
+            bot_token=settings.telegram_bot_token,
+            chat_id=settings.telegram_chat_id,
+        ),
+        LinkedInAdapter(
+            http_client,
+            access_token=settings.linkedin_access_token,
+            person_urn=settings.linkedin_person_urn,
+            api_version=settings.linkedin_api_version,
+            token_expires_at=settings.linkedin_token_expires_at,
+        ),
+        DiscordAdapter(
+            http_client,
+            webhook_url=settings.discord_webhook_url,
+            guild_id=settings.discord_guild_id,
+        ),
+    ]
+    known = {adapter.name.casefold() for adapter in adapters}
+    disabled = {name.casefold() for name in settings.disabled_platforms}
+    unknown = sorted(disabled - known)
+    if unknown:
+        raise ValueError(
+            f"DISABLED_PLATFORMS names unknown platform(s): {', '.join(unknown)}; "
+            f"valid names are {', '.join(adapter.name for adapter in adapters)}"
+        )
+    return PlatformRegistry(a for a in adapters if a.name.casefold() not in disabled)

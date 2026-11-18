@@ -41,7 +41,9 @@ selection is internal**: the request contains only the message.
 * `date` and `time` are the publication moment in **UTC**.
 * `posted_url` is the link the platform reported, or `null` when it has none.
   `public_access` is `true` only when the post is known to be publicly visible.
-* HTTP **503** means no platform is configured on the server.
+* `total_duration_ms` and `platform_durations_ms` report how long the whole publication
+  and each attempted platform took (including retries and waits), in milliseconds.
+* HTTP **503** means no platform is configured on the server..
 """
 
 _SUCCESS_EXAMPLE = {
@@ -70,6 +72,8 @@ _SUCCESS_EXAMPLE = {
         },
     ],
     "skipped_platforms": ["Telegram", "LinkedIn"],
+    "total_duration_ms": 842,
+    "platform_durations_ms": {"Mastodon": 611, "Bluesky": 842},
 }
 
 _PARTIAL_EXAMPLE = {
@@ -98,6 +102,8 @@ _PARTIAL_EXAMPLE = {
         },
     ],
     "skipped_platforms": [],
+    "total_duration_ms": 1204,
+    "platform_durations_ms": {"Mastodon": 611, "LinkedIn": 1204},
 }
 
 
