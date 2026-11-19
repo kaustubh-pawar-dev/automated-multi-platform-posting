@@ -20,7 +20,7 @@ TOTAL    1229 statements, 0 missed, 254 branches, 0 partial    100.0%
 Required test coverage of 97.0% reached. Total coverage: 100.00%
 ```
 
-`ruff check .` reported `All checks passed!`. No test publishes anything or needs credentials.
+`ruff check .` reported `All checks passed!`. A later run, after the documentation checks were added, reported `578 passed in 61.74s`. No test publishes anything or needs credentials..
 
 ## 2. Direct adapter check against the live Discord API (17 November 2026)
 

@@ -25,7 +25,7 @@ Publishing the same announcement to several platforms by hand is slow and error-
 - Security: credentials only in environment variables (`SecretStr`), secret redaction in logs, HTTPS-only outbound calls restricted to each platform's own hosts, no redirects, the CTA link is never fetched.
 - Observability: request IDs on every log line and error body, JSON logs in production, `GET /health`, `GET /platforms` diagnostics, per-platform timing.
 - `DISABLED_PLATFORMS` switch and graceful shutdown (`python -m app`).
-- 569 automated tests with 100% statement and branch coverage; no test publishes anything.
+- 578 automated tests with 100% statement and branch coverage; no test publishes anything.
 
 ## 4. Technology stack
 
