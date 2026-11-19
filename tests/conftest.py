@@ -14,6 +14,19 @@ from app.core.logging import remove_app_handlers
 from app.main import create_app
 
 
+@pytest.fixture(autouse=True)
+def _isolate_settings_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Remove every setting from the process environment for each test.
+
+    ``Settings(_env_file=None)`` still reads real environment variables, so a
+    variable left in the developer's shell (for example DISABLED_PLATFORMS)
+    could silently change test results. Tests that need a variable set it
+    themselves with ``monkeypatch.setenv``.
+    """
+    for name in Settings.model_fields:
+        monkeypatch.delenv(name.upper(), raising=False)
+
+
 @pytest.fixture
 def test_settings() -> Settings:
     """Settings that ignore any local .env file."""
