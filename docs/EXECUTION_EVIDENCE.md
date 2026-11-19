@@ -105,3 +105,33 @@ python -m app
 ```
 
 Then send a request as shown in [API_EXAMPLES.md](API_EXAMPLES.md). Requires your own `DISCORD_WEBHOOK_URL` in `.env`.
+
+
+## 8. Real post URL from a live Discord publication (19 November 2026)
+
+With `DISCORD_GUILD_ID` set, a request through `POST /posting` returned a working jump link. The other four platforms were switched off for the run.
+
+```json
+{
+  "success": true,
+  "total_platforms": 1,
+  "successful_count": 1,
+  "failed_count": 0,
+  "results": [
+    {
+      "platform": "Discord",
+      "status": "success",
+      "posted_url": "https://discord.com/channels/1572084998830555177/1572084999446859828/1572799890562486272",
+      "public_access": false,
+      "date": "2026-11-19",
+      "time": "02:25:15",
+      "error": null
+    }
+  ],
+  "skipped_platforms": [],
+  "total_duration_ms": 1311,
+  "platform_durations_ms": {"Discord": 1311}
+}
+```
+
+Opening `posted_url` in a logged-in browser jumped to the message "Posted URL check" in the server channel, which Discord displayed at 7:55 AM India Standard Time (02:25 UTC). This verifies the jump-link format that the research document had marked "verify". The link works only for members of the server, which is why `public_access` is `false`.

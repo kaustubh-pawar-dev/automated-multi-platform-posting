@@ -231,7 +231,7 @@ A real response recorded on 17 November 2026 from a live Discord publication (th
 }
 ```
 
-`posted_url` is null because the optional `DISCORD_GUILD_ID` was not set, and `public_access` is false because a Discord server channel is not publicly accessible. Newer versions also return `total_duration_ms` and `platform_durations_ms`.
+`posted_url` is null in this recording because the optional `DISCORD_GUILD_ID` was not set yet. With it set, a later live run returned a working jump link (see [docs/EXECUTION_EVIDENCE.md](docs/EXECUTION_EVIDENCE.md), section 8). `public_access` is false because a Discord server channel is not publicly accessible. Newer versions also return `total_duration_ms` and `platform_durations_ms`.
 
 ## 18. Partial failure example
 
@@ -313,7 +313,7 @@ The Discord channel showing messages published through this service (Discord dis
 
 ## 21. Known limitations
 
-- **Live verification:** only Discord has been verified against a live service. The other adapters follow the documented APIs and are tested with mocked HTTP, but have not been proven live. A few details are flagged "verify" in the research document (Telegram's `retry_after` location and 404 meaning, LinkedIn's post URL format, Discord's jump-link format).
+- **Live verification:** only Discord has been verified against a live service. The other adapters follow the documented APIs and are tested with mocked HTTP, but have not been proven live. A few details are flagged "verify" in the research document (Telegram's `retry_after` location and 404 meaning, and LinkedIn's post URL format).
 - **LinkedIn:** self-serve tokens last about 60 days and cannot be refreshed in the background; re-run `scripts/linkedin_authorize.py`. `public_access` reflects the requested `PUBLIC` visibility; LinkedIn may still show logged-out visitors a login page. Personal profiles only.
 - **Bluesky:** the API has no idempotency key, so ambiguous failures are never retried. The post URL is derived from the handle and record key. The session is cached in memory.
 - **Telegram:** posts in a chat without a public username succeed but have no URL and `public_access` is false.
