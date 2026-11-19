@@ -25,7 +25,7 @@ Publishing the same announcement to several platforms by hand is slow and error-
 - Security: credentials only in environment variables (`SecretStr`), secret redaction in logs, HTTPS-only outbound calls restricted to each platform's own hosts, no redirects, the CTA link is never fetched.
 - Observability: request IDs on every log line and error body, JSON logs in production, `GET /health`, `GET /platforms` diagnostics, per-platform timing.
 - `DISABLED_PLATFORMS` switch and graceful shutdown (`python -m app`).
-- 578 automated tests with 100% statement and branch coverage; no test publishes anything.
+- 579 automated tests with 100% statement and branch coverage; no test publishes anything.
 
 ## 4. Technology stack
 
@@ -69,11 +69,11 @@ automated-multi-platform-posting/
 |   |-- services/                message validation, posting service, diagnostics
 |   `-- utils/                   CTA URL extraction and validation
 |-- scripts/linkedin_authorize.py   one-time LinkedIn OAuth helper
-|-- tests/                       29 test modules, shared fixtures and fakes
+|-- tests/                       N test modules, shared fixtures and fakes
 |-- docs/                        architecture, API examples, platform research, evidence
 |-- screenshots/                 execution screenshots
 |-- .env.example                 placeholders only
-|-- requirements.txt, requirements-dev.txt, pyproject.toml
+|-- requirements.txt, requirements-dev.txt, requirements-lock.txt, pyproject.toml
 `-- LICENSE, README.md
 ```
 
@@ -125,7 +125,9 @@ python -m pip install --upgrade pip
 pip install -r requirements-dev.txt
 ```
 
-If script execution is blocked: `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`. On macOS or Linux: `python3.12 -m venv .venv`, `source .venv/bin/activate`, then the same pip commands.
+To reproduce the exact versions this project was tested with, run `pip install -r requirements-lock.txt` instead of the last command.
+
+If script execution is blocked:: `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`. On macOS or Linux: `python3.12 -m venv .venv`, `source .venv/bin/activate`, then the same pip commands.
 
 ## 12. Environment variable configuration
 
