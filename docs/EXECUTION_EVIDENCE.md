@@ -179,3 +179,54 @@ Seventeen requests were sent to that server. Each returned the status that was f
 | wrong method on `/posting` | 405 | 405 |
 
 The server log showed these codes: `MESSAGE_TOO_LONG`, `EMPTY_MESSAGE`, `MISSING_CTA_URL`, `MULTIPLE_CTA_URLS`, `UNSUPPORTED_URL_SCHEME` (twice), `URL_HOST_NOT_PUBLIC`, `UNKNOWN_FIELD`, `FIELD_REQUIRED` and `INVALID_JSON`. `GET /openapi.json` listed exactly three paths: `/posting`, `/health` and `/platforms`.
+
+
+## 10. Partial failure against a live service (20 November 2026)
+
+Discord was live. LinkedIn was given a deliberately invalid token (`DISABLED_PLATFORMS` switched off the other three platforms), so LinkedIn rejected the request. A safety check confirmed the override took effect before the server started, so the real LinkedIn token was never used. The same request returned HTTP 200:
+
+```json
+{
+  "success": false,
+  "total_platforms": 2,
+  "successful_count": 1,
+  "failed_count": 1,
+  "results": [
+    {
+      "platform": "LinkedIn",
+      "status": "failed",
+      "posted_url": null,
+      "public_access": false,
+      "date": null,
+      "time": null,
+      "error": "Authentication failed"
+    },
+    {
+      "platform": "Discord",
+      "status": "success",
+      "posted_url": "https://discord.com/channels/1572084998830555177/1572084999446859828/1573166654094053499",
+      "public_access": false,
+      "date": "2026-11-20",
+      "time": "02:42:38",
+      "error": null
+    }
+  ],
+  "skipped_platforms": [],
+  "total_duration_ms": 1234,
+  "platform_durations_ms": {"LinkedIn": 1015, "Discord": 1218}
+}
+```
+
+Server log for that request:
+
+```text
+2026-11-20T02:42:37.044Z INFO     [9f300ee643994f0b8246d57c8eef6953] app.services.posting_service: posting_started platforms=2 skipped=[] message_chars=40
+2026-11-20T02:42:37.048Z INFO     [9f300ee643994f0b8246d57c8eef6953] app.services.posting_service: platform_attempt platform=LinkedIn
+2026-11-20T02:42:37.076Z INFO     [9f300ee643994f0b8246d57c8eef6953] app.services.posting_service: platform_attempt platform=Discord
+2026-11-20T02:42:38.067Z WARNING  [9f300ee643994f0b8246d57c8eef6953] app.services.posting_service: platform_failed platform=LinkedIn error='Authentication failed' retryable=False ambiguous=False attempts=1 detail=HTTP 401
+2026-11-20T02:42:38.068Z INFO     [9f300ee643994f0b8246d57c8eef6953] app.services.posting_service: platform_finished platform=LinkedIn status=failed attempts=1 duration_ms=1015
+2026-11-20T02:42:38.294Z INFO     [9f300ee643994f0b8246d57c8eef6953] app.services.posting_service: platform_finished platform=Discord status=success attempts=1 duration_ms=1218
+2026-11-20T02:42:38.296Z INFO     [9f300ee643994f0b8246d57c8eef6953] app.services.posting_service: posting_finished success=False attempted=2 succeeded=1 failed=1 duration_ms=1234
+```
+
+This shows, against a live service: one platform failing without affecting the other, the failed result carrying no URL, date or time, an authentication failure being tried once and not retried, and both platforms running concurrently (both attempts started within 30 ms of each other, and the total time is close to the slower platform, not the sum). Only Discord was live in this run; the LinkedIn adapter's failure path was exercised against LinkedIn's real servers, but a successful LinkedIn publication has not been verified.

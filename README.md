@@ -237,7 +237,7 @@ A real response recorded on 17 November 2026 from a live Discord publication (th
 
 ## 18. Partial failure example
 
-Illustrative (not a recorded run). The scenario is exercised by `test_partial_failure_retries_only_where_it_is_safe` in `tests/test_integration_posting.py`, which drives all five real adapters with mocked HTTP:
+A real recorded run from 20 November 2026 (details in [docs/EXECUTION_EVIDENCE.md](docs/EXECUTION_EVIDENCE.md), section 10). Discord was live; LinkedIn was given a deliberately invalid token, so LinkedIn failed while Discord still published:
 
 ```json
 {
@@ -247,15 +247,6 @@ Illustrative (not a recorded run). The scenario is exercised by `test_partial_fa
   "failed_count": 1,
   "results": [
     {
-      "platform": "Mastodon",
-      "status": "success",
-      "posted_url": "https://mastodon.example/@user/110000000000000000",
-      "public_access": true,
-      "date": "2026-11-15",
-      "time": "10:30:00",
-      "error": null
-    },
-    {
       "platform": "LinkedIn",
       "status": "failed",
       "posted_url": null,
@@ -263,13 +254,24 @@ Illustrative (not a recorded run). The scenario is exercised by `test_partial_fa
       "date": null,
       "time": null,
       "error": "Authentication failed"
+    },
+    {
+      "platform": "Discord",
+      "status": "success",
+      "posted_url": "https://discord.com/channels/1572084998830555177/1572084999446859828/1573166654094053499",
+      "public_access": false,
+      "date": "2026-11-20",
+      "time": "02:42:38",
+      "error": null
     }
   ],
   "skipped_platforms": [],
-  "total_duration_ms": 1204,
-  "platform_durations_ms": {"Mastodon": 611, "LinkedIn": 1204}
+  "total_duration_ms": 1234,
+  "platform_durations_ms": {"LinkedIn": 1015, "Discord": 1218}
 }
 ```
+
+The fully mocked equivalent, with all five real adapters, is `test_partial_failure_retries_only_where_it_is_safe` in `tests/test_integration_posting.py`.
 
 ## 19. Validation error examples
 
