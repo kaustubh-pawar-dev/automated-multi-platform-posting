@@ -32,7 +32,7 @@ Publishing the same announcement to several platforms by hand is slow and error-
 | Area | Choice |
 |---|---|
 | Language | Python 3.12 |
-| Web framework | FastAPI 0.163, Uvicorn 0.54 |
+| Web framework | FastAPI (tested with 0.163.1 and 0.165.0), Uvicorn 0.54 |
 | Validation and settings | Pydantic v2, pydantic-settings |
 | HTTP client | HTTPX (async, shared connection pool) |
 | Tests | pytest, pytest-asyncio, respx (HTTP mocking), pytest-cov |

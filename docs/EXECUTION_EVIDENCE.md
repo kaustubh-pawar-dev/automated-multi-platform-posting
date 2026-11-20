@@ -135,3 +135,47 @@ With `DISCORD_GUILD_ID` set, a request through `POST /posting` returned a workin
 ```
 
 Opening `posted_url` in a logged-in browser jumped to the message "Posted URL check" in the server channel, which Discord displayed at 7:55 AM India Standard Time (02:25 UTC). This verifies the jump-link format that the research document had marked "verify". The link works only for members of the server, which is why `public_access` is `false`.
+
+
+## 9. Fresh-clone verification (19 November 2026)
+
+The public repository was cloned into a new folder with no `.env` file and no platform variables set. A new Python 3.12.3 virtual environment was created and `requirements-dev.txt` was installed (version ranges; they resolved to FastAPI 0.165.0, while the earlier runs used 0.163.1).
+
+```text
+All checks passed!
+579 passed in 52.54s
+
+TOTAL                                 1229      0    254      0  100.0%
+Required test coverage of 97.0% reached. Total coverage: 100.00%
+579 passed in 72.56s (0:01:12)
+```
+
+`python -m app` started without credentials:
+
+```text
+app.main: application_started environment=development configured=[] not_configured=['Mastodon', 'Bluesky', 'Telegram', 'LinkedIn', 'Discord']
+```
+
+Seventeen requests were sent to that server. Each returned the status that was fixed in advance:
+
+| Request | Expected | Received |
+|---|---|---|
+| valid message, nothing configured | 503 | 503 |
+| exactly 200 characters | 503 | 503 |
+| 201 characters | 400 | 400 |
+| empty message | 400 | 400 |
+| no link | 400 | 400 |
+| two links | 400 | 400 |
+| `javascript:` link | 400 | 400 |
+| `ftp://` link | 400 | 400 |
+| `localhost` link | 400 | 400 |
+| client tries to pick platforms | 422 | 422 |
+| missing `message` field | 422 | 422 |
+| invalid JSON | 422 | 422 |
+| `GET /health` | 200 | 200 |
+| `GET /platforms` | 200 | 200 |
+| `GET /docs` | 200 | 200 |
+| unknown path | 404 | 404 |
+| wrong method on `/posting` | 405 | 405 |
+
+The server log showed these codes: `MESSAGE_TOO_LONG`, `EMPTY_MESSAGE`, `MISSING_CTA_URL`, `MULTIPLE_CTA_URLS`, `UNSUPPORTED_URL_SCHEME` (twice), `URL_HOST_NOT_PUBLIC`, `UNKNOWN_FIELD`, `FIELD_REQUIRED` and `INVALID_JSON`. `GET /openapi.json` listed exactly three paths: `/posting`, `/health` and `/platforms`.
