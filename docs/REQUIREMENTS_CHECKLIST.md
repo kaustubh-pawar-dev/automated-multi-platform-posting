@@ -36,7 +36,7 @@ Status as of 19 November 2026. **Met** means demonstrated by automated tests, a 
 | Credentials in environment variables, `.env.example` placeholders only | Met | `tests/test_repo_hygiene.py` |
 | Proper exception handling | Met | `app/api/errors.py`, `app/core/exceptions.py` |
 | Requirements files | Met | `requirements.txt`, `requirements-dev.txt`, `requirements-lock.txt` |
-| Automated tests | Met | 579 tests, 100% statement and branch coverage, no test publishes or needs credentials |
+| Automated tests | Met | 583  tests, 100% statement and branch coverage, no test publishes or needs credentials |
 | README, architecture document, API examples | Met | `README.md`, `docs/` |
 | Sample requests and responses | Met | `README.md`, `docs/API_EXAMPLES.md` |
 | Screenshots or execution logs | Partially met | real evidence for Discord only (`docs/EXECUTION_EVIDENCE.md`) |
